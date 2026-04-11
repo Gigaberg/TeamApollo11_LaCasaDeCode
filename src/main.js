@@ -573,15 +573,28 @@ document.querySelectorAll('input[name="role"]').forEach(radio => {
 // Set initial state
 wsUrlGroup.style.display = 'flex'; // Admin is checked by default
 
+// ── Credentials ───────────────────────────────────────────────────────────────
+const CREDENTIALS = {
+  Admin: { username: 'admin', password: 'saygex@2026' },
+  'Property Owner': { username: 'owner', password: 'saygex@2026' },
+};
+
 // ── Login ─────────────────────────────────────────────────────────────────────
 document.getElementById('login-form').addEventListener('submit', (e) => {
   e.preventDefault();
-  const propertyId   = document.getElementById('property-id').value;
+  const propertyId   = document.getElementById('property-id').value.trim();
+  const password     = document.getElementById('password').value;
   const selectedRole = document.querySelector('input[name="role"]:checked').value;
   const loginError   = document.getElementById('login-error');
-  if (loginError) loginError.style.display = 'none';
 
-  currentPropertyId = propertyId || 'Admin';
+  const creds = CREDENTIALS[selectedRole];
+  if (!creds || propertyId !== creds.username || password !== creds.password) {
+    if (loginError) loginError.style.display = 'block';
+    return;
+  }
+
+  if (loginError) loginError.style.display = 'none';
+  currentPropertyId = propertyId;
   document.getElementById('login-screen').style.display = 'none';
 
   const roleDisplay = document.getElementById('user-role-display');
