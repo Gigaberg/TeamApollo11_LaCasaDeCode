@@ -2,7 +2,7 @@ import './style.css';
 
 // ── States ────────────────────────────────────────────────────────────────────
 const STATES = {
-  CLEAR:  { icon: '✅', text: 'NO ANOMALY',       bannerClass: 'banner-clear',  eventClass: 'event-clear',  bgMode: '' },
+  CLEAR:  { icon: '🧘', text: 'NO ANOMALY',       bannerClass: 'banner-clear',  eventClass: 'event-clear',  bgMode: '' },
   MOTION: { icon: '⚠️', text: 'MOTION DETECTED',  bannerClass: 'banner-motion', eventClass: 'event-motion', bgMode: 'alert-mode' },
   DOOR:   { icon: '🚪', text: 'DOOR EVENT',        bannerClass: 'banner-door',   eventClass: 'event-door',   bgMode: '' },
 };
@@ -194,7 +194,7 @@ function addLogEvent(message, eventClass) {
   const li = document.createElement('li');
   li.className = eventClass;
   const now = new Date();
-  const icon = eventClass === 'event-clear' ? '✅' : '⚠️';
+  const icon = eventClass === 'event-clear' ? '🧘' : '⚠️';
   const color = eventClass === 'event-clear' ? '#00ff88' : '#ff3b3b';
   li.innerHTML = `
     <span class="timestamp">[${now.toLocaleTimeString()}]</span>
@@ -363,7 +363,7 @@ function updateUserDashboard(data) {
       icon.innerText = '⚠️'; text.innerText = 'MOTION DETECTED';
     } else {
       banner.className = 'status-banner banner-clear';
-      icon.innerText = '✅'; text.innerText = 'NO ANOMALY';
+      icon.innerText = '🧘'; text.innerText = 'NO ANOMALY';
     }
   }
   // Occupancy timer
