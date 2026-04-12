@@ -189,11 +189,11 @@ body.alert-mode {
 }
 
 .direction-entry {
-  background: linear-gradient(135deg, rgba(0, 158, 204, 0.9), rgba(0, 195, 255, 0.7));
-  border: 1px solid #00c3ff;
+  background: linear-gradient(135deg, rgba(180, 120, 10, 0.9), rgba(245, 166, 35, 0.7));
+  border: 1px solid #f5a623;
   color: #fff;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  box-shadow: 0 0 20px rgba(0, 195, 255, 0.6);
+  box-shadow: 0 0 20px rgba(245, 166, 35, 0.6);
 }
 
 .direction-exit {
@@ -242,8 +242,8 @@ body.alert-mode {
 .variance-huge {
   font-size: 3rem;
   font-weight: 800;
-  color: #00c3ff;
-  text-shadow: 0 0 15px rgba(0, 195, 255, 0.6);
+  color: #f5a623;
+  text-shadow: 0 0 15px rgba(245, 166, 35, 0.6);
   margin-top: 5px;
   line-height: 1;
   font-family: monospace;
@@ -413,7 +413,7 @@ body.alert-mode {
 
 .slider-group input {
   width: 100%;
-  accent-color: #00c3ff;
+  accent-color: #f5a623;
   cursor: pointer;
 }
 
@@ -435,7 +435,7 @@ body.alert-mode {
 }
 
 .btn-primary {
-  background-color: #00c3ff;
+  background-color: #f5a623;
   color: black;
   border: none;
   padding: 10px;
@@ -447,7 +447,7 @@ body.alert-mode {
 }
 
 .btn-primary:hover {
-  background-color: #009ecc;
+  background-color: #d4891a;
 }
 
 #cal-progress-wrapper {
@@ -460,7 +460,7 @@ body.alert-mode {
 .cal-text {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #00c3ff;
+  color: #f5a623;
   animation: blink 1s infinite;
 }
 
@@ -473,7 +473,7 @@ body.alert-mode {
 }
 
 .progress-fill {
-  background-color: #00c3ff;
+  background-color: #f5a623;
   height: 100%;
   width: 0%;
   transition: width 0.1s linear;
@@ -557,12 +557,12 @@ body.alert-mode {
 
 .login-header h2 {
   font-size: 2rem;
-  color: #00c3ff;
+  color: #f5a623;
   margin-bottom: 5px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 2px;
-  text-shadow: 0 0 10px rgba(0, 195, 255, 0.4);
+  text-shadow: 0 0 10px rgba(245, 166, 35, 0.4);
 }
 
 .login-header p {
@@ -598,9 +598,9 @@ body.alert-mode {
 
 .input-group input:focus {
   outline: none;
-  border-color: #00c3ff;
-  box-shadow: 0 0 15px rgba(0, 195, 255, 0.3);
-  background: rgba(0, 195, 255, 0.05);
+  border-color: #f5a623;
+  box-shadow: 0 0 15px rgba(245, 166, 35, 0.3);
+  background: rgba(245, 166, 35, 0.05);
 }
 
 .login-btn {
@@ -865,12 +865,12 @@ body.alert-mode {
   text-align: center;
   padding: 10px 20px;
   font-size: 0.95rem;
-  border-bottom: 2px solid #00c3ff;
-  box-shadow: 0 2px 12px rgba(0, 195, 255, 0.3);
+  border-bottom: 2px solid #f5a623;
+  box-shadow: 0 2px 12px rgba(245, 166, 35, 0.3);
 }
 
 .demo-banner a {
-  color: #00c3ff;
+  color: #f5a623;
   font-weight: 700;
   text-decoration: none;
   margin-left: 4px;

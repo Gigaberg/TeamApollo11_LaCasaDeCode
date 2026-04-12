@@ -20,8 +20,8 @@ let occupancyTimer  = null;
 const ctx = document.getElementById('csi-chart').getContext('2d');
 
 const gradientBlue   = ctx.createLinearGradient(0, 0, 0, 400);
-gradientBlue.addColorStop(0, 'rgba(0, 195, 255, 0.5)');
-gradientBlue.addColorStop(1, 'rgba(0, 195, 255, 0.05)');
+gradientBlue.addColorStop(0, 'rgba(245, 166, 35, 0.5)');
+gradientBlue.addColorStop(1, 'rgba(245, 166, 35, 0.05)');
 const gradientRed    = ctx.createLinearGradient(0, 0, 0, 400);
 gradientRed.addColorStop(0, 'rgba(255, 59, 59, 0.6)');
 gradientRed.addColorStop(1, 'rgba(255, 59, 59, 0.05)');
@@ -37,8 +37,7 @@ const csiChart = new Chart(ctx, {
       {
         label: 'CSI Variance',
         data: Array(100).fill(0),
-        borderColor: '#00c3ff',
-        backgroundColor: gradientBlue,
+        borderColor: '#f5a623',
         borderWidth: 2,
         fill: true,
         tension: 0.4,
@@ -87,8 +86,8 @@ const subChart = new Chart(subCtx, {
     datasets: [{
       label: 'Variance',
       data: Array(10).fill(0),
-      backgroundColor: 'rgba(0,195,255,0.6)',
-      borderColor: '#00c3ff',
+      backgroundColor: 'rgba(245,166,35,0.6)',
+      borderColor: '#f5a623',
       borderWidth: 1,
     }]
   },
@@ -161,8 +160,8 @@ function renderVariance(variance) {
     display.style.color = '#ff3b3b';
     display.style.textShadow = '0 0 25px rgba(255,59,59,0.8)';
   } else {
-    display.style.color = '#00c3ff';
-    display.style.textShadow = '0 0 15px rgba(0,195,255,0.6)';
+    display.style.color = '#f5a623';
+    display.style.textShadow = '0 0 15px rgba(245,166,35,0.6)';
   }
 }
 
@@ -512,7 +511,7 @@ function initBackend() {
         nextState = STATES.MOTION;
         dataset.borderColor = '#ff3b3b'; dataset.backgroundColor = gradientRed;
       } else {
-        dataset.borderColor = '#00c3ff'; dataset.backgroundColor = gradientBlue;
+        dataset.borderColor = '#f5a623'; dataset.backgroundColor = gradientBlue;
       }
       updateState(nextState);
       csiChart.update();
