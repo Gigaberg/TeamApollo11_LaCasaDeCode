@@ -606,7 +606,8 @@ document.getElementById('login-form').addEventListener('submit', (e) => {
     document.getElementById('owner-controls').style.display = 'none';
     addLogEvent(`Authenticated: ${propertyId} [Admin]`, 'event-clear');
   } else {
-    document.getElementById('user-app').style.display = 'flex';
+    const userApp = document.getElementById('user-app');
+    userApp.style.display = 'flex';
   }
 
   initBackend();

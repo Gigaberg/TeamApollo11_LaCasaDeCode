@@ -11,6 +11,12 @@
 </head>
 
 <body>
+  <!-- Demo Banner -->
+  <div class="demo-banner">
+    🎬 <strong>Project Demo:</strong> Watch our project in action →
+    <a href="https://youtu.be/xq6Jo9oG2dI" target="_blank" rel="noopener noreferrer">youtu.be/xq6Jo9oG2dI</a>
+  </div>
+
   <!-- Login Screen -->
   <div id="login-screen" class="login-container">
 
@@ -146,7 +152,7 @@
     </aside>
 
     <main class="main-content" id="main-content">
-      <div class="top-nav" style="display:flex; justify-content:space-between; align-items:center;">
+      <div class="top-nav">
         <div id="user-role-display"
           style="font-weight: 600; font-size: 1.1rem; color: #00c3ff; text-transform: uppercase; letter-spacing: 1px;">
         </div>
@@ -176,7 +182,7 @@
       </div>
 
       <!-- Occupancy + Session Stats row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:15px;">
+      <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-label">Room Status</div>
           <div id="occupancy-timer" class="stat-value" style="color:#00ff88">Room: Clear</div>
@@ -219,8 +225,7 @@
   </div>
 
   <!-- User Alert Dashboard (View-Only) -->
-  <div id="user-app"
-    style="display: none; flex-direction: row; height: 100vh; background-color: var(--bg-color-normal); padding: 20px; gap: 20px; width: 100%;">
+  <div id="user-app" class="user-app-layout" style="display: none;">
 
     <!-- LEFT PANEL: Live Status + Alerts -->
     <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 25px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--panel-bg); overflow-y: auto;">
