@@ -1,6 +1,6 @@
-# SAYGEX — Secure Anomaly Yielding Gaurdian EXchange
+# Techflix — Wi-Fi CSI Presence & Activity Detection
 
-A real-time, camera-free intrusion detection system using Wi-Fi CSI (Channel State Information) signals from ESP32-S3 microcontrollers. When someone moves in a room, it disturbs the Wi-Fi signal — SAYGEX detects that disturbance and alerts you instantly.
+A real-time, camera-free presence detection system using Wi-Fi CSI (Channel State Information) from ESP32-S3 microcontrollers. When someone moves in a room, it disturbs the Wi-Fi signal — Techflix detects that disturbance, classifies the activity, and alerts you instantly.
 
 ---
 
@@ -9,16 +9,16 @@ A real-time, camera-free intrusion detection system using Wi-Fi CSI (Channel Sta
 Two ESP32-S3 boards are used:
 
 - **Transmitter** — acts as a Wi-Fi Access Point (`CSI_Beacon`) and broadcasts UDP packets every 50ms
-- **Receiver** — connects to the AP as a station, captures CSI data from the incoming frames, and streams raw IQ samples over USB serial to a laptop
+- **Receiver** — connects to the AP, captures CSI data from incoming frames, and streams raw IQ samples over USB serial to a laptop
 
-The Python backend reads the serial stream, extracts amplitude variance across 10 sensitive subcarriers, runs a calibration phase to establish a baseline, and flags motion when variance exceeds `baseline × multiplier`. Results are broadcast in real time to the web dashboard via WebSocket.
+The Python backend reads the serial stream, extracts amplitude variance across 10 sensitive subcarriers, runs a calibration phase to establish a baseline, and classifies activity when variance deviates from baseline. Results are broadcast in real time to the web dashboard via WebSocket.
 
 ---
 
 ## System Architecture
 
 ```
-[ESP32 Transmitter] --Wi-Fi CSI--> [ESP32 Receiver] --USB Serial--> [Python Backend]
+[ESP32 Transmitter] --Wi-Fi CSI--> [ESP32 Receiver] --USB Serial--> [Python Backend (FastAPI)]
                                                                             |
                                                                      WebSocket (ws://localhost:8000/ws)
                                                                             |
@@ -51,7 +51,7 @@ cd csi_receiver
 idf.py build flash
 ```
 
-The receiver streams CSI lines over serial at 115200 baud in the format:
+The receiver streams CSI lines over serial at 115200 baud:
 ```
 CSI,<timestamp>,<rssi>,<noise_floor>,<length>,<raw IQ bytes...>
 ```
@@ -61,17 +61,15 @@ CSI,<timestamp>,<rssi>,<noise_floor>,<length>,<raw IQ bytes...>
 ## Backend Setup
 
 ```bash
-cd csi_receiver
-pip install pyserial websockets numpy requests
-python app.py
+cd Techflix/backend
+pip install -r requirements.txt
+uvicorn server:app --host 0.0.0.0 --port 8000
 ```
 
 The backend will:
-1. Open `/dev/ttyACM0` at 115200 baud
-2. Run a 300-frame calibration (keep the room empty and still)
-3. Start streaming detection results over WebSocket at `ws://localhost:8000/ws`
-
-To change the serial port, edit `PORT` in `app.py`.
+1. Open `/dev/ttyACM0` at 115200 baud (change `SERIAL_PORT` in `server.py` if needed)
+2. Run a 100-frame calibration — keep the room empty and still during this phase
+3. Stream detection results over WebSocket at `ws://localhost:8000/ws`
 
 ---
 
@@ -81,7 +79,7 @@ Hosted on Render. Built with Vite + vanilla JS + Chart.js.
 
 To run locally:
 ```bash
-cd "Code Clash"
+cd Techflix
 npm install
 npm run dev
 ```
@@ -113,19 +111,35 @@ wss://your-ngrok-url.ngrok-free.app/ws
 
 ## Dashboard Login
 
-| Role           | Username | Password      |
-|----------------|----------|---------------|
-| Admin          | admin    | saygex@2026   |
-| Property Owner | owner    | saygex@2026   |
+| Role           | Username | Password    |
+|----------------|----------|-------------|
+| Admin          | admin    | saygex@2026 |
+| Property Owner | owner    | saygex@2026 |
 
 Admin has full controls (recalibrate, sensitivity, mute, export).
-Property Owner is view-only (live status + motion alerts).
+Property Owner is view-only.
+
+---
+
+## Activity Classification
+
+The backend uses a variance-based temporal classifier (no pre-trained model required). It observes rolling variance over a ~3 second window and classifies:
+
+| Activity    | Signal pattern                                      |
+|-------------|-----------------------------------------------------|
+| empty       | Variance at baseline                                |
+| breathing   | Tiny stable elevation just above baseline           |
+| stationary  | Moderate stable elevation                           |
+| walking     | High variance with irregular spikes                 |
+| fall        | Large spike followed by sudden drop to near-baseline|
 
 ---
 
 ## Features
 
-- Motion detection using Wi-Fi CSI variance (no cameras)
+- Presence detection using Wi-Fi CSI variance (no cameras)
+- Real-time activity classification (empty / breathing / stationary / walking / fall)
+- Person identification via CSI gait signatures
 - Live variance chart, subcarrier sparklines, 24h motion heatmap
 - Telegram alerts on motion detection
 - Recalibration on demand or via sensitivity slider
@@ -139,10 +153,10 @@ Property Owner is view-only (live status + motion alerts).
 
 ## Tech Stack
 
-| Layer     | Technology                        |
-|-----------|-----------------------------------|
-| Hardware  | ESP32-S3, ESP-IDF, FreeRTOS       |
-| Backend   | Python, pyserial, websockets, numpy |
-| Frontend  | Vite, vanilla JS, Chart.js        |
-| Hosting   | Render (frontend), ngrok (backend tunnel) |
-| Alerts    | Telegram Bot API                  |
+| Layer     | Technology                                      |
+|-----------|-------------------------------------------------|
+| Hardware  | ESP32-S3, ESP-IDF, FreeRTOS                     |
+| Backend   | Python, FastAPI, serial-asyncio, numpy          |
+| Frontend  | Vite, vanilla JS, Chart.js                      |
+| Hosting   | Render (frontend), ngrok (backend tunnel)       |
+| Alerts    | Telegram Bot API                                |

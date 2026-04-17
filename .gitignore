@@ -22,3 +22,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# ML models (large binary files — regenerate with train_classifier.py)
+backend/rf_model.pkl
+backend/cnn_model.pkl
+backend/cnn_model.keras
+backend/cnn_norm.pkl
+
+# Data files
+*.csv
+processed_features.csv

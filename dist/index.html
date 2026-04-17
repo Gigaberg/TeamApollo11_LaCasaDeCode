@@ -5,11 +5,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Dashboard for Real-Time Smart Home Security Monitoring" />
-  <title>Secure Anomaly Yielding Gaurdian EXchange</title>
+  <title>Apollo 11 Security</title>
   <!-- Google Fonts for modern typography -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/assets/index-4Fl0pPtC.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-jDhvozTO.css">
+  <script type="module" crossorigin src="/assets/index-CpWN9s_J.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CM0QvSbj.css">
 </head>
 
 <body>
@@ -18,7 +18,7 @@
 
     <div class="login-left-panel">
       <div class="login-branding">
-        <h2>Secure Anomaly Yielding Gaurdian EXchange</h2>
+        <h2>Apollo 11 Security</h2>
         <p>Your Personal Security Assistant</p>
       </div>
     </div>
@@ -31,9 +31,9 @@
         </div>
         <form id="login-form">
           <div id="login-error" style="display: none; color: #ff3b3b; font-size: 0.9rem; margin-bottom: 10px;">
-            Incorrect credentials or role.
+            ❌ Incorrect username or password.
             <div style="margin-top:6px; color:#eab308; font-size:0.85rem;">
-              💡 Hint — Admin: <strong>admin</strong> / <strong>saygex@2026</strong> &nbsp;|&nbsp; Owner: <strong>owner</strong> / <strong>saygex@2026</strong>
+              💡 Admin: <strong>admin</strong> / <strong>saygex@2026</strong> &nbsp;|&nbsp; Owner: <strong>owner</strong> / <strong>saygex@2026</strong>
             </div>
           </div>
           <div class="input-group">
@@ -55,14 +55,20 @@
           </div>
           <div class="input-group">
             <label for="password">Password</label>
-            <input type="password" id="password" placeholder="saygex@2026" required />
+            <div style="position:relative;">
+              <input type="password" id="password" placeholder="Enter password" required style="width:100%;padding-right:44px;" />
+              <button type="button" id="toggle-password" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:1.1rem;padding:0;line-height:1;" aria-label="Toggle password visibility">👁</button>
+            </div>
           </div>
           <div class="input-group" id="ws-url-group">
             <label for="ws-url">Backend URL</label>
             <input type="text" id="ws-url" placeholder="wss://xxxx.ngrok-free.app/ws" />
             <p style="font-size:0.75rem;color:#475569;margin-top:4px;">Leave blank to use localhost (same machine)</p>
           </div>
-          <button type="submit" class="btn-primary login-btn">Login</button>
+          <button type="submit" id="login-btn" class="btn-primary login-btn">Login</button>
+          <div id="login-loading" style="display:none;text-align:center;margin-top:10px;color:#f5a623;font-size:0.9rem;">
+            ⏳ Connecting to backend...
+          </div>
         </form>
       </div>
     </div>
@@ -95,7 +101,7 @@
           </div>
           <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:2px;">
             <span style="color:var(--text-secondary)">Baseline</span>
-            <span id="baseline-val" style="color:#00c3ff;font-weight:bold;">--</span>
+            <span id="baseline-val" style="color:#f5a623;font-weight:bold;">--</span>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:2px;">
             <span style="color:var(--text-secondary)">Threshold</span>
@@ -116,7 +122,10 @@
           <!-- Sensitivity multiplier -->
           <div class="slider-group" style="margin-bottom:12px;">
             <label style="font-size:0.85rem;">Sensitivity: <span id="mul-val">2.0x</span></label>
-            <input type="range" id="mul-slider" min="1.1" max="5" step="0.1" value="2.0">
+            <div class="slider-wrap">
+              <input type="range" id="mul-slider" min="1.1" max="5" step="0.1" value="2.0">
+              <div id="mul-tooltip" class="slider-tooltip">2.0x</div>
+            </div>
             <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:3px;">Higher = less sensitive. Triggers recalibration.</p>
           </div>
 
@@ -148,9 +157,16 @@
     </aside>
 
     <main class="main-content" id="main-content">
-      <div class="top-nav" style="display:flex; justify-content:space-between; align-items:center;">
-        <div id="user-role-display"
-          style="font-weight: 600; font-size: 1.1rem; color: #00c3ff; text-transform: uppercase; letter-spacing: 1px;">
+      <div class="top-nav">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div id="user-role-display"
+            style="font-weight: 600; font-size: 1.1rem; color: #f5a623; text-transform: uppercase; letter-spacing: 1px;">
+          </div>
+          <!-- Admin tab switcher -->
+          <div id="admin-tabs" style="display:none;gap:6px;display:flex;">
+            <button id="tab-monitor-btn" class="tab-btn tab-active" onclick="switchAdminTab('monitor')">📡 Monitor</button>
+            <button id="tab-personid-btn" class="tab-btn" onclick="switchAdminTab('personid')">👤 Person ID</button>
+          </div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
           <button id="theme-toggle-btn" class="btn-secondary" style="margin-bottom:0;">☀️ Switch to Light Mode</button>
@@ -159,7 +175,7 @@
       </div>
       <div class="status-banner banner-clear" id="status-banner">
         <span class="status-icon" id="status-icon">🧘</span>
-        <span class="status-text" id="status-text">NO ANOMALY</span>
+        <span class="status-text" id="status-text">ALL CLEAR — NO MOVEMENT</span>
       </div>
 
       <div id="direction-indicator" class="direction-indicator hidden">
@@ -178,7 +194,7 @@
       </div>
 
       <!-- Occupancy + Session Stats row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:15px;">
+      <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-label">Room Status</div>
           <div id="occupancy-timer" class="stat-value" style="color:#00ff88">Room: Clear</div>
@@ -217,19 +233,82 @@
         </div>
         <canvas id="heatmap-chart"></canvas>
       </div>
+
+      <!-- ── Person ID Tab ─────────────────────────────────────────────────── -->
+      <div id="tab-personid" style="display:none;flex-direction:column;gap:16px;">
+
+        <!-- Detection banner -->
+        <div id="last-detection-banner" class="detection-banner detection-clear">
+          <span id="last-detection-icon" style="font-size:2rem;">🧘</span>
+          <div>
+            <div id="last-detection-name" style="font-size:1.8rem;font-weight:800;">Waiting...</div>
+            <div id="last-detection-meta" style="font-size:0.85rem;opacity:0.8;">No crossing detected yet</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:16px;">
+
+          <!-- Enrollment + Profiles -->
+          <div class="identity-panel" style="flex:1;">
+            <h3 class="panel-title">👤 Enroll Person</h3>
+            <div id="enroll-status-bar" class="enroll-status-idle">
+              <span id="enroll-status-text">Idle — not enrolling (target: 30 crossings per person)</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <input id="enroll-name" type="text" placeholder="Person name..." class="id-input" style="width:100%;" />
+              <div style="display:flex;gap:8px;">
+                <button id="enroll-start-btn" class="btn-primary" style="flex:1;">▶ Start Enrolling</button>
+                <button id="enroll-stop-btn" class="btn-secondary" style="flex:1;" disabled>⏹ Stop</button>
+              </div>
+            </div>
+            <h3 class="panel-title" style="margin-top:12px;">📋 Enrolled Profiles</h3>
+            <div id="profiles-list" class="profiles-list">
+              <div class="empty-log">No profiles enrolled yet</div>
+            </div>
+          </div>
+
+          <!-- Live feed -->
+          <div class="identity-panel" style="flex:2;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <h3 class="panel-title">📡 Live Detection Feed</h3>
+              <span id="id-conn-badge" class="live-indicator" style="font-size:0.75rem;">CONNECTING</span>
+            </div>
+            <div class="id-table-header">
+              <span>Time</span><span>Person</span><span>Confidence</span><span>Status</span>
+            </div>
+            <div id="id-event-list" class="id-event-list">
+              <div class="empty-log" style="padding:20px;">Waiting for crossings...</div>
+            </div>
+          </div>
+
+          <!-- Stats + alerts -->
+          <div class="identity-panel" style="flex:1;">
+            <h3 class="panel-title">📊 Session Stats</h3>
+            <div class="id-stat-grid">
+              <div class="stat-card"><div class="stat-label">Total</div><div id="id-stat-total" class="stat-value">0</div></div>
+              <div class="stat-card"><div class="stat-label">Identified</div><div id="id-stat-identified" class="stat-value" style="color:#00ff88;">0</div></div>
+              <div class="stat-card"><div class="stat-label">Unknown</div><div id="id-stat-unknown" class="stat-value" style="color:#ff3b3b;">0</div></div>
+              <div class="stat-card"><div class="stat-label">Enrolled</div><div id="id-stat-enrolled" class="stat-value" style="color:#f5a623;">0</div></div>
+            </div>
+            <h3 class="panel-title" style="margin-top:16px;">🚨 Unknown Alerts</h3>
+            <div id="id-alert-list" class="id-alert-list">
+              <div class="empty-log">No unknown detections</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </main>
   </div>
-
-  <!-- User Alert Dashboard (View-Only) -->
-  <div id="user-app"
-    style="display: none; flex-direction: row; height: 100vh; background-color: var(--bg-color-normal); padding: 20px; gap: 20px; width: 100%;">
+  <div id="user-app" class="user-app-layout" style="display: none;">
 
     <!-- LEFT PANEL: Live Status + Alerts -->
     <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 25px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--panel-bg); overflow-y: auto;">
 
       <!-- Header -->
       <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
-        <h2 style="font-size: 1.4rem; color: #00c3ff; text-transform: uppercase; letter-spacing: 2px;">My Property</h2>
+        <h2 style="font-size: 1.4rem; color: #f5a623; text-transform: uppercase; letter-spacing: 2px;">My Property</h2>
         <div style="display: flex; align-items: center; gap: 10px;">
           <span class="live-indicator" style="font-size: 0.9rem; padding: 5px 10px;">LIVE</span>
           <button id="user-theme-toggle" class="btn-secondary" style="font-size: 0.85rem; padding: 5px 10px;">☀️ Light</button>
@@ -239,8 +318,8 @@
 
       <!-- Live status banner (mirrors admin) -->
       <div id="user-status-banner" class="status-banner banner-clear" style="font-size:2rem;padding:20px 30px;">
-        <span id="user-status-icon">🧘</span>
-        <span id="user-status-text">NO ANOMALY</span>
+        <span id="user-status-icon">🟢</span>
+        <span id="user-status-text">ALL CLEAR — NO MOVEMENT</span>
       </div>
 
       <!-- Occupancy info cards -->
@@ -261,7 +340,7 @@
           <span>🚨 Motion Alerts</span>
           <div style="display: flex; align-items: center; gap: 15px;">
             <span class="telegram-icon" id="anim-time-alert" style="opacity: 0; font-size: 1.2rem; display: inline-block;">🚨</span>
-            <span id="time-alert" style="color: #00c3ff; font-family: monospace;"></span>
+            <span id="time-alert" style="color: #f5a623; font-family: monospace;"></span>
           </div>
         </summary>
         <div id="log-alert" class="accordion-content">
@@ -273,18 +352,18 @@
 
     <!-- RIGHT PANEL: Telegram Sent Dashboard -->
     <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 25px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--panel-bg); overflow-y: auto;">
-      <h2 style="font-size: 1.4rem; color: #00c3ff; text-transform: uppercase; letter-spacing: 2px;">Telegram Alerts Sent</h2>
+      <h2 style="font-size: 1.4rem; color: #f5a623; text-transform: uppercase; letter-spacing: 2px;">Telegram Alerts Sent</h2>
 
       <!-- Stats Bar -->
       <div style="display: flex; justify-content: space-between; align-items: center; background: var(--list-bg); border-radius: 8px; padding: 15px 20px; border: 1px solid var(--border-color); font-weight: 600; font-size: 0.95rem;">
         <div>Status: <span style="color: #00ff88;">Online 🌍</span></div>
-        <div>Total Sent: <span id="telegram-total" style="color:#00c3ff;">0</span></div>
+        <div>Total Sent: <span id="telegram-total" style="color:#f5a623;">0</span></div>
         <div style="color:var(--text-secondary);font-size:0.85rem;">Avg Delivery: 1.8s</div>
       </div>
 
       <!-- Table -->
       <div style="width: 100%; background: var(--list-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
-        <div style="display: grid; grid-template-columns: 2fr 3fr 2fr 1.5fr; gap: 15px; padding: 15px 20px; color: #00c3ff; font-weight: 600; border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
+        <div style="display: grid; grid-template-columns: 2fr 3fr 2fr 1.5fr; gap: 15px; padding: 15px 20px; color: #f5a623; font-weight: 600; border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
           <div>Property ID</div>
           <div>Message</div>
           <div>Date/Time</div>
@@ -432,12 +511,12 @@
 
     .user-alert-entry,
     .user-alert-exit {
-      border-left-color: #00c3ff;
+      border-left-color: #f5a623;
     }
 
     .user-alert-entry .alert-header,
     .user-alert-exit .alert-header {
-      color: #00c3ff;
+      color: #f5a623;
     }
 
     .stat-card {

@@ -2,7 +2,7 @@ import './style.css';
 
 // ── States ────────────────────────────────────────────────────────────────────
 const STATES = {
-  CLEAR:  { icon: '🧘', text: 'NO ANOMALY',       bannerClass: 'banner-clear',  eventClass: 'event-clear',  bgMode: '' },
+  CLEAR:  { icon: '🟢', text: 'ALL CLEAR — NO MOVEMENT', bannerClass: 'banner-clear',  eventClass: 'event-clear',  bgMode: '' },
   MOTION: { icon: '⚠️', text: 'MOTION DETECTED',  bannerClass: 'banner-motion', eventClass: 'event-motion', bgMode: 'alert-mode' },
   DOOR:   { icon: '🚪', text: 'DOOR EVENT',        bannerClass: 'banner-door',   eventClass: 'event-door',   bgMode: '' },
 };
@@ -206,8 +206,8 @@ function addLogEvent(message, eventClass) {
 // ── User alert panel ──────────────────────────────────────────────────────────
 function emitUserAlert(type) {
   const now = new Date();
-  const detected_time = now.toLocaleTimeString('en-US', { hour12: false });
-  const telegram_time = new Date(now.getTime() + 2000).toLocaleTimeString('en-US', { hour12: false });
+  const detected_time = now.toLocaleTimeString('en-US', { hour12: true });
+  const telegram_time = new Date(now.getTime() + 2000).toLocaleTimeString('en-US', { hour12: true });
 
   const map = {
     motion: { id: 'log-alert',      timeId: 'time-alert',      icon: '🚨', title: 'Motion Detected' },
@@ -307,7 +307,7 @@ function updateState(newState) {
 
   if (currentState === STATES.MOTION) { addLogEvent('MOTION DETECTED', 'event-motion'); emitUserAlert('motion'); }
   else if (currentState === STATES.DOOR) { addLogEvent('DOOR EVENT', 'event-door'); emitUserAlert('door'); }
-  else addLogEvent('No Anomaly', 'event-clear');
+  else addLogEvent('All Clear — No Movement', 'event-clear');
 }
 
 // ── Theme toggle ──────────────────────────────────────────────────────────────
@@ -318,15 +318,28 @@ function applyTheme(dark) {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   themeBtn.innerText = dark ? '☀️ Switch to Light Mode' : '🌙 Switch to Dark Mode';
   if (userThemeBtn) userThemeBtn.innerText = dark ? '☀️ Light' : '🌙 Dark';
-  const tc = dark ? '#cbd5e1' : '#475569';
+  const tc = dark ? '#cbd5e1' : '#1e293b';
   const gc = dark ? '#333333' : '#e2e8f0';
-  csiChart.options.scales.x.title.color = tc;
-  csiChart.options.scales.y.title.color = tc;
-  csiChart.options.scales.y.ticks.color = tc;
-  csiChart.options.scales.y.grid.color  = gc;
-  csiChart.options.plugins.legend.labels.color = tc;
-  csiChart.update('none');
+  const allCharts = [csiChart, subChart, heatmapChart];
+  allCharts.forEach(chart => {
+    if (!chart) return;
+    if (chart.options.scales.x) {
+      chart.options.scales.x.ticks && (chart.options.scales.x.ticks.color = tc);
+      chart.options.scales.x.title && (chart.options.scales.x.title.color = tc);
+      chart.options.scales.x.grid && (chart.options.scales.x.grid.color = gc);
+    }
+    if (chart.options.scales.y) {
+      chart.options.scales.y.ticks && (chart.options.scales.y.ticks.color = tc);
+      chart.options.scales.y.title && (chart.options.scales.y.title.color = tc);
+      chart.options.scales.y.grid && (chart.options.scales.y.grid.color = gc);
+    }
+    if (chart.options.plugins?.legend?.labels) chart.options.plugins.legend.labels.color = tc;
+    chart.update('none');
+  });
 }
+
+// Apply light mode on load
+applyTheme(false);
 
 themeBtn.addEventListener('click', () => {
   applyTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
@@ -345,6 +358,7 @@ document.getElementById('logout-btn')?.addEventListener('click', () => {
 
 document.getElementById('user-logout-btn')?.addEventListener('click', () => {
   if (ws) { ws.onclose = null; ws.close(); ws = null; }
+  if (idWs) { idWs.onclose = null; idWs.close(); idWs = null; }
   document.getElementById('user-app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-form').reset();
@@ -362,7 +376,7 @@ function updateUserDashboard(data) {
       icon.innerText = '⚠️'; text.innerText = 'MOTION DETECTED';
     } else {
       banner.className = 'status-banner banner-clear';
-      icon.innerText = '🧘'; text.innerText = 'NO ANOMALY';
+      icon.innerText = '🟢'; text.innerText = 'ALL CLEAR — NO MOVEMENT';
     }
   }
   // Occupancy timer
@@ -405,9 +419,37 @@ calibrateBtn.addEventListener('click', () => {
 });
 
 // ── Sensitivity multiplier ────────────────────────────────────────────────────
-const mulSlider = document.getElementById('mul-slider');
-const mulVal    = document.getElementById('mul-val');
+const mulSlider  = document.getElementById('mul-slider');
+const mulVal     = document.getElementById('mul-val');
+const mulTooltip = document.getElementById('mul-tooltip');
+const mulWrap    = mulSlider?.closest('.slider-wrap');
+
+function updateMulTooltip() {
+  if (!mulSlider || !mulTooltip) return;
+  const min = parseFloat(mulSlider.min);
+  const max = parseFloat(mulSlider.max);
+  const val = parseFloat(mulSlider.value);
+  // Calculate thumb position as % across the track
+  const pct = (val - min) / (max - min);
+  // Offset accounts for thumb width (~8px half-thumb on each side)
+  const thumbHalf = 8;
+  const trackWidth = mulSlider.offsetWidth;
+  const pos = thumbHalf + pct * (trackWidth - thumbHalf * 2);
+  mulTooltip.style.left = pos + 'px';
+  mulTooltip.innerText = val.toFixed(1) + 'x';
+}
+
 if (mulSlider) {
+  mulSlider.addEventListener('input', () => {
+    mulVal.innerText = parseFloat(mulSlider.value).toFixed(1) + 'x';
+    updateMulTooltip();
+  });
+
+  mulSlider.addEventListener('mousedown', () => mulWrap?.classList.add('dragging'));
+  mulSlider.addEventListener('touchstart', () => mulWrap?.classList.add('dragging'));
+  document.addEventListener('mouseup', () => mulWrap?.classList.remove('dragging'));
+  document.addEventListener('touchend', () => mulWrap?.classList.remove('dragging'));
+
   mulSlider.addEventListener('change', () => {
     const v = parseFloat(mulSlider.value);
     mulVal.innerText = v.toFixed(1) + 'x';
@@ -416,6 +458,9 @@ if (mulSlider) {
       addLogEvent(`Sensitivity set to ${v.toFixed(1)}x — recalibrating`, 'event-clear');
     }
   });
+
+  // Init tooltip position
+  updateMulTooltip();
 }
 
 // ── Mute button ───────────────────────────────────────────────────────────────
@@ -428,9 +473,44 @@ document.getElementById('mute-btn')?.addEventListener('click', () => {
 });
 
 // ── Export button ─────────────────────────────────────────────────────────────
-document.getElementById('export-btn')?.addEventListener('click', () => {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ cmd: 'export' }));
+document.getElementById('export-btn')?.addEventListener('click', async () => {
+  try {
+    const res = await fetch(`${API_BASE()}/events`);
+    const events = await res.json();
+
+    if (!events.length) {
+      addLogEvent('No session data to export yet', 'event-motion');
+      return;
+    }
+
+    // Build CSV from identity events + raw session stats
+    const rows = [['time', 'type', 'name', 'distance', 'peak_variance', 'spike_duration', 'rise_time', 'fall_time', 'energy', 'skewness', 'peak_amplitude']];
+    events.forEach(ev => {
+      const f = ev.features || {};
+      rows.push([
+        ev.time ?? '',
+        ev.type ?? '',
+        ev.name ?? '',
+        ev.distance ?? '',
+        f.peak_variance ?? '',
+        f.spike_duration ?? '',
+        f.rise_time ?? '',
+        f.fall_time ?? '',
+        f.energy ?? '',
+        f.skewness ?? '',
+        f.peak_amplitude ?? '',
+      ]);
+    });
+
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `apollo11_session_${Date.now()}.csv`;
+    a.click();
+    addLogEvent('Session exported', 'event-clear');
+  } catch (err) {
+    addLogEvent('Export failed — backend unreachable', 'event-motion');
   }
 });
 
@@ -449,16 +529,6 @@ function initBackend() {
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data);
-
-      // Export download
-      if (data.export !== undefined) {
-        const blob = new Blob([data.export], { type: 'text/csv' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `csi_session_${Date.now()}.csv`;
-        a.click();
-        return;
-      }
 
       // Calibration state
       if (data.calibrating) {
@@ -535,6 +605,26 @@ function initBackend() {
       // Session stats
       if (data.session) updateSessionStats(data.session);
 
+      // AI activity classification
+      if (data.activity) {
+        const actLabel = document.getElementById('activity-label');
+        const actConf = document.getElementById('activity-conf');
+        if (actLabel) {
+          actLabel.innerText = data.activity.charAt(0).toUpperCase() + data.activity.slice(1);
+          const colorMap = {
+            empty: '#cbd5e1',
+            walking: '#f5a623',
+            stationary: '#3b82f6',
+            breathing: '#00ff88',
+            fall: '#ff3b3b'
+          };
+          actLabel.style.color = colorMap[data.activity] || '#3b82f6';
+        }
+        if (actConf && data.activity_conf !== undefined) {
+          actConf.innerText = `${(data.activity_conf * 100).toFixed(1)}% confidence`;
+        }
+      }
+
       // Occupancy timer
       updateOccupancyTimer(data.occupied_since);
 
@@ -578,6 +668,19 @@ const CREDENTIALS = {
   'Property Owner': { username: 'owner', password: 'saygex@2026' },
 };
 
+// ── Password visibility toggle ────────────────────────────────────────────────
+document.getElementById('toggle-password')?.addEventListener('click', () => {
+  const input = document.getElementById('password');
+  const btn   = document.getElementById('toggle-password');
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.innerText = '🙈';
+  } else {
+    input.type = 'password';
+    btn.innerText = '👁';
+  }
+});
+
 // ── Login ─────────────────────────────────────────────────────────────────────
 document.getElementById('login-form').addEventListener('submit', (e) => {
   e.preventDefault();
@@ -585,6 +688,8 @@ document.getElementById('login-form').addEventListener('submit', (e) => {
   const password     = document.getElementById('password').value;
   const selectedRole = document.querySelector('input[name="role"]:checked').value;
   const loginError   = document.getElementById('login-error');
+  const loginBtn     = document.getElementById('login-btn');
+  const loginLoading = document.getElementById('login-loading');
 
   const creds = CREDENTIALS[selectedRole];
   if (!creds || propertyId !== creds.username || password !== creds.password) {
@@ -593,8 +698,15 @@ document.getElementById('login-form').addEventListener('submit', (e) => {
   }
 
   if (loginError) loginError.style.display = 'none';
+  loginBtn.disabled = true;
+  loginBtn.innerText = 'Logging in...';
+  if (loginLoading) loginLoading.style.display = 'block';
+
   currentPropertyId = propertyId;
   document.getElementById('login-screen').style.display = 'none';
+  loginBtn.disabled = false;
+  loginBtn.innerText = 'Login';
+  if (loginLoading) loginLoading.style.display = 'none';
 
   const roleDisplay = document.getElementById('user-role-display');
   if (roleDisplay) roleDisplay.innerText = `Role: ${selectedRole}`;
@@ -603,11 +715,358 @@ document.getElementById('login-form').addEventListener('submit', (e) => {
     document.getElementById('app').style.display = 'flex';
     document.getElementById('admin-controls').style.display = 'block';
     document.getElementById('owner-controls').style.display = 'none';
+    const adminTabs = document.getElementById('admin-tabs');
+    if (adminTabs) adminTabs.style.display = 'flex';
     addLogEvent(`Authenticated: ${propertyId} [Admin]`, 'event-clear');
+    initIdentitySystem();
+    switchAdminTab('monitor');
   } else {
     const userApp = document.getElementById('user-app');
     userApp.style.display = 'flex';
+    initOwnerIdentityFeed();
   }
 
   initBackend();
 });
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// IDENTITY SYSTEM
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let idWs = null;
+let idStats = { total: 0, identified: 0, unknown: 0 };
+let enrolling = false;
+
+const ID_WS_BASE = () => {
+  const wsInput = document.getElementById('ws-url');
+  const base = (wsInput && wsInput.value.trim()) ? wsInput.value.trim() : 'ws://localhost:8000';
+  // Strip trailing /ws if present, then append /ws/identify
+  return base.replace(/\/ws$/, '') + '/ws/identify';
+};
+
+const API_BASE = () => {
+  const wsInput = document.getElementById('ws-url');
+  const base = (wsInput && wsInput.value.trim()) ? wsInput.value.trim() : 'ws://localhost:8000';
+  return base.replace(/^ws/, 'http').replace(/\/ws.*$/, '');
+};
+
+// ── Tab switcher ──────────────────────────────────────────────────────────────
+function switchAdminTab(tab) {
+  const monitorEls = [
+    document.getElementById('status-banner'),
+    document.getElementById('direction-indicator'),
+    document.getElementById('csi-chart')?.closest('.chart-container'),
+    document.getElementById('sub-chart')?.closest('.chart-container'),
+    document.getElementById('heatmap-chart')?.closest('.chart-container'),
+    document.querySelector('.stats-grid'),
+  ];
+  const personidEl = document.getElementById('tab-personid');
+
+  if (tab === 'monitor') {
+    monitorEls.forEach(el => el && (el.style.display = ''));
+    if (personidEl) personidEl.style.display = 'none';
+    document.getElementById('tab-monitor-btn')?.classList.add('tab-active');
+    document.getElementById('tab-personid-btn')?.classList.remove('tab-active');
+  } else {
+    monitorEls.forEach(el => el && (el.style.display = 'none'));
+    if (personidEl) {
+      personidEl.style.display = 'flex';
+      personidEl.style.flexDirection = 'column';
+      personidEl.style.gap = '16px';
+    }
+    document.getElementById('tab-monitor-btn')?.classList.remove('tab-active');
+    document.getElementById('tab-personid-btn')?.classList.add('tab-active');
+  }
+}
+window.switchAdminTab = switchAdminTab;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function initIdentitySystem() {
+  loadProfiles();
+  connectIdentityWS();
+
+  document.getElementById('enroll-start-btn').addEventListener('click', startEnrollment);
+  document.getElementById('enroll-stop-btn').addEventListener('click', stopEnrollment);
+}
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+function connectIdentityWS() {
+  const badge = document.getElementById('id-conn-badge');
+  if (badge) { badge.innerText = 'CONNECTING'; badge.style.color = '#eab308'; }
+
+  idWs = new WebSocket(ID_WS_BASE());
+
+  idWs.onopen = () => {
+    if (badge) { badge.innerText = '🟢 LIVE'; badge.style.color = '#00ff88'; }
+  };
+
+  idWs.onmessage = (e) => {
+    try { handleIdentityEvent(JSON.parse(e.data)); } catch {}
+  };
+
+  idWs.onclose = () => {
+    if (badge) { badge.innerText = '🔴 DISCONNECTED'; badge.style.color = '#ff3b3b'; }
+    setTimeout(connectIdentityWS, 3000);
+  };
+
+  idWs.onerror = () => {};
+}
+
+// ── Event handler ─────────────────────────────────────────────────────────────
+function handleIdentityEvent(ev) {
+  if (ev.type === 'enrolled') {
+    const progress = Math.min(Math.round((ev.count / 30) * 100), 100);
+    addIdEventRow(ev.time, ev.name, `${ev.count}/30`, `${progress}% enrolled`, 'row-enrolled');
+    updateEnrollStatus(`Enrolling ${ev.name} — ${ev.count}/30 crossings (${progress}%)`);
+    if (ev.count >= 30) {
+      updateEnrollStatus(`✅ ${ev.name} fully enrolled (30 crossings)`);
+      document.getElementById('enroll-status-bar').className = 'enroll-status-idle';
+    }
+    loadProfiles(); // refresh count
+    return;
+  }
+
+  idStats.total++;
+  const isUnknown = ev.type === 'unknown';
+  if (isUnknown) idStats.unknown++; else idStats.identified++;
+  updateIdStats();
+
+  const confidence = ev.distance !== undefined
+    ? `d=${ev.distance.toFixed(2)}`
+    : '—';
+
+  const rowClass = isUnknown ? 'row-unknown' : 'row-identified';
+  const statusLabel = isUnknown ? '🚨 Unknown' : '✅ Match';
+  addIdEventRow(ev.time, isUnknown ? 'UNKNOWN' : `Highly Likely ${ev.name}`, confidence, statusLabel, rowClass);
+
+  // Update banner
+  updateDetectionBanner(ev);
+
+  // Unknown alert
+  if (isUnknown) addUnknownAlert(ev);
+}
+
+function updateDetectionBanner(ev) {
+  const banner = document.getElementById('last-detection-banner');
+  const icon   = document.getElementById('last-detection-icon');
+  const name   = document.getElementById('last-detection-name');
+  const meta   = document.getElementById('last-detection-meta');
+  if (!banner) return;
+
+  if (ev.type === 'unknown') {
+    banner.className = 'detection-banner detection-unknown';
+    icon.innerText = '🚨';
+    name.innerText = 'UNKNOWN INTRUDER';
+    meta.innerText = `Alert at ${ev.time} — distance: ${ev.distance?.toFixed(2)}`;
+  } else {
+    banner.className = 'detection-banner detection-identified';
+    icon.innerText = '👤';
+    name.innerText = `Highly Likely ${ev.name}`;
+    meta.innerText = `Identified at ${ev.time} — distance: ${ev.distance?.toFixed(2)}`;
+    // Reset to clear after 5s
+    setTimeout(() => {
+      if (banner.classList.contains('detection-identified')) {
+        banner.className = 'detection-banner detection-clear';
+        icon.innerText = '🧘';
+        name.innerText = 'Waiting...';
+        meta.innerText = 'No crossing detected';
+      }
+    }, 5000);
+  }
+}
+
+function addIdEventRow(time, person, confidence, status, rowClass) {
+  const list = document.getElementById('id-event-list');
+  list.querySelector('.empty-log')?.remove();
+
+  const row = document.createElement('div');
+  row.className = `id-event-row ${rowClass}`;
+  const color = rowClass === 'row-unknown' ? '#ff3b3b' : rowClass === 'row-enrolled' ? '#f5a623' : '#3b82f6';
+  row.innerHTML = `
+    <span style="color:var(--text-secondary);font-size:0.8rem;">${time}</span>
+    <span style="font-weight:600;color:${color};">${person}</span>
+    <span style="color:var(--text-secondary);font-size:0.8rem;">${confidence}</span>
+    <span style="color:${color};font-size:0.8rem;">${status}</span>
+  `;
+  list.prepend(row);
+  if (list.children.length > 50) list.removeChild(list.lastChild);
+}
+
+function addUnknownAlert(ev) {
+  const list = document.getElementById('id-alert-list');
+  list.querySelector('.empty-log')?.remove();
+  const card = document.createElement('div');
+  card.className = 'id-alert-card';
+  card.innerHTML = `<strong>🚨 Unknown at ${ev.time}</strong><br><span style="color:var(--text-secondary);font-size:0.8rem;">Distance: ${ev.distance?.toFixed(3)}</span>`;
+  list.prepend(card);
+  if (list.children.length > 20) list.removeChild(list.lastChild);
+}
+
+function updateIdStats() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+  set('id-stat-total',      idStats.total);
+  set('id-stat-identified', idStats.identified);
+  set('id-stat-unknown',    idStats.unknown);
+}
+
+// ── Enrollment ────────────────────────────────────────────────────────────────
+async function startEnrollment() {
+  const name = document.getElementById('enroll-name').value.trim();
+  if (!name) { alert('Enter a name first.'); return; }
+
+  try {
+    await fetch(`${API_BASE()}/enroll/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    enrolling = true;
+    document.getElementById('enroll-start-btn').disabled = true;
+    document.getElementById('enroll-stop-btn').disabled = false;
+    updateEnrollStatus(`Enrolling ${name} — walk through the sensor path...`);
+    document.getElementById('enroll-status-bar').className = 'enroll-status-active';
+  } catch (err) {
+    alert('Could not reach backend: ' + err.message);
+  }
+}
+
+async function stopEnrollment() {
+  try {
+    const res = await fetch(`${API_BASE()}/enroll/stop`, { method: 'POST' });
+    const data = await res.json();
+    enrolling = false;
+    document.getElementById('enroll-start-btn').disabled = false;
+    document.getElementById('enroll-stop-btn').disabled = true;
+    updateEnrollStatus(`Done — ${data.crossings} crossings saved for ${data.name}`);
+    document.getElementById('enroll-status-bar').className = 'enroll-status-idle';
+    loadProfiles();
+  } catch (err) {
+    alert('Could not reach backend: ' + err.message);
+  }
+}
+
+function updateEnrollStatus(msg) {
+  const el = document.getElementById('enroll-status-text');
+  if (el) el.innerText = msg;
+}
+
+// ── Profiles ──────────────────────────────────────────────────────────────────
+async function loadProfiles() {
+  try {
+    const res = await fetch(`${API_BASE()}/profiles`);
+    const data = await res.json();
+    renderProfiles(data);
+  } catch {}
+}
+
+function renderProfiles(profiles) {
+  const list = document.getElementById('profiles-list');
+  list.innerHTML = '';
+  const names = Object.keys(profiles);
+  document.getElementById('id-stat-enrolled').innerText = names.length;
+
+  if (names.length === 0) {
+    list.innerHTML = '<div class="empty-log">No profiles enrolled yet</div>';
+    return;
+  }
+
+  names.forEach(name => {
+    const count = profiles[name];
+    const row = document.createElement('div');
+    row.className = 'profile-row';
+    row.innerHTML = `
+      <div>
+        <div class="profile-name">👤 ${name}</div>
+        <div class="profile-count">${count} crossing${count !== 1 ? 's' : ''}</div>
+      </div>
+      <button class="profile-delete-btn" data-name="${name}">🗑</button>
+    `;
+    row.querySelector('.profile-delete-btn').addEventListener('click', async () => {
+      if (!confirm(`Delete profile for ${name}?`)) return;
+      await fetch(`${API_BASE()}/profiles/${encodeURIComponent(name)}`, { method: 'DELETE' });
+      loadProfiles();
+    });
+    list.appendChild(row);
+  });
+}
+
+// ── Owner identity feed ───────────────────────────────────────────────────────
+// Connects to /ws/identify and pushes person name / unknown alerts
+// into the owner's existing Motion Alerts panel and Telegram table.
+function initOwnerIdentityFeed() {
+  const wsBase = ID_WS_BASE();
+  let ownerIdWs = new WebSocket(wsBase);
+
+  ownerIdWs.onmessage = (e) => {
+    try {
+      const ev = JSON.parse(e.data);
+      if (ev.type !== 'identified' && ev.type !== 'unknown') return;
+
+      const isUnknown = ev.type === 'unknown';
+      const label = isUnknown ? '⚠️ Unknown Person' : `👤 Highly Likely ${ev.name}`;
+      const now = new Date();
+      const detected_time = now.toLocaleTimeString('en-US', { hour12: true });
+
+      // ── Motion Alerts panel ──────────────────────────────────────────────
+      const logAlert = document.getElementById('log-alert');
+      if (logAlert) {
+        logAlert.querySelector('.empty-log')?.remove();
+        const card = document.createElement('div');
+        card.className = 'user-alert-card';
+        card.style.borderLeftColor = isUnknown ? '#ff3b3b' : '#3b82f6';
+        card.innerHTML = `
+          <div class="alert-header" style="color:${isUnknown ? '#ff3b3b' : '#3b82f6'};">
+            ${isUnknown ? '🚨' : '👤'} ${label}
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:0.9rem;">
+            <span style="color:var(--text-secondary)">Detected: <span style="color:var(--text-primary);font-weight:bold;">${detected_time}</span></span>
+            <span style="color:var(--text-secondary)">Confidence: <span style="color:var(--text-primary);">${ev.distance !== undefined ? 'd=' + ev.distance.toFixed(2) : '—'}</span></span>
+          </div>
+        `;
+        logAlert.prepend(card);
+        if (logAlert.children.length > 20) logAlert.removeChild(logAlert.lastChild);
+
+        // Update the timestamp badge
+        const timeAlert = document.getElementById('time-alert');
+        if (timeAlert) timeAlert.innerText = detected_time;
+        const animLabel = document.getElementById('anim-time-alert');
+        if (animLabel) { animLabel.classList.remove('fly-animate'); void animLabel.offsetWidth; animLabel.classList.add('fly-animate'); }
+      }
+
+      // ── Telegram table ───────────────────────────────────────────────────
+      const tableBody = document.getElementById('telegram-table-body');
+      if (tableBody) {
+        const d = now;
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const row = document.createElement('div');
+        row.style = 'display:grid;grid-template-columns:2fr 3fr 2fr 1.5fr;gap:15px;padding:15px 20px;border-bottom:1px solid var(--border-color);font-size:0.9rem;color:var(--text-primary);animation:slideIn 0.3s ease-out';
+        row.innerHTML = `
+          <div>${currentPropertyId}</div>
+          <div>${isUnknown ? '🚨' : '👤'} ${label}</div>
+          <div>${dateStr} ${detected_time}</div>
+          <div style="color:${isUnknown ? '#ff3b3b' : '#00ff88'}">${isUnknown ? 'Alert ⚠️' : 'Sent ✔️'}</div>
+        `;
+        tableBody.prepend(row);
+        document.getElementById('telegram-empty-msg')?.remove();
+        const totalEl = document.getElementById('telegram-total');
+        if (totalEl) totalEl.innerText = ((parseInt(totalEl.innerText.replace(/,/g,''), 10) || 0) + 1).toLocaleString();
+      }
+
+      // Update motion count
+      const mc = document.getElementById('user-motion-count');
+      if (mc) mc.innerText = (parseInt(mc.innerText, 10) || 0) + 1;
+
+    } catch {}
+  };
+
+  ownerIdWs.onclose = () => {
+    // Reconnect after 3s if owner is still logged in
+    if (document.getElementById('user-app').style.display !== 'none') {
+      setTimeout(initOwnerIdentityFeed, 3000);
+    }
+  };
+
+  ownerIdWs.onerror = () => {};
+}

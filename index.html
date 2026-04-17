@@ -1,21 +1,17 @@
-<!doctype html>
-<html lang="en" data-theme="dark">
+ <!doctype html>
+<html lang="en" data-theme="light">
 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Dashboard for Real-Time Smart Home Security Monitoring" />
   <title>Secure Anomaly Yielding Gaurdian EXchange</title>
-  <!-- Google Fonts for modern typography -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Neo-Grotesque font -->
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 
 <body>
-  <!-- Demo Banner -->
-  <div class="demo-banner">
-    🎬 <strong>Project Demo:</strong> Watch our project in action →
-    <a href="https://youtu.be/xq6Jo9oG2dI" target="_blank" rel="noopener noreferrer">youtu.be/xq6Jo9oG2dI</a>
-  </div>
+  <!-- Demo banner removed -->
 
   <!-- Login Screen -->
   <div id="login-screen" class="login-container">
@@ -24,6 +20,11 @@
       <div class="login-branding">
         <h2>Secure Anomaly Yielding Gaurdian EXchange</h2>
         <p>Your Personal Security Assistant</p>
+        <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
+          <span style="background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.4);color:#f5a623;padding:5px 12px;font-size:0.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;">WiFi CSI</span>
+          <span style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);color:#00ff88;padding:5px 12px;font-size:0.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Real-Time</span>
+          <span style="background:rgba(255,59,59,0.1);border:1px solid rgba(255,59,59,0.3);color:#ff3b3b;padding:5px 12px;font-size:0.75rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Motion AI</span>
+        </div>
       </div>
     </div>
 
@@ -57,16 +58,18 @@
             <label for="property-id">Property ID</label>
             <input type="text" id="property-id" placeholder="Admin: admin | Owner: owner" required />
           </div>
-          <div class="input-group">
+          <div class="input-group" style="position:relative;">
             <label for="password">Password</label>
-            <input type="password" id="password" placeholder="saygex@2026" required />
+            <input type="password" id="password" placeholder="saygex@2026" required style="padding-right:40px;" />
+            <button type="button" id="toggle-password" style="position:absolute;right:10px;bottom:8px;background:none;border:none;cursor:pointer;font-size:1rem;">👁</button>
           </div>
           <div class="input-group" id="ws-url-group">
             <label for="ws-url">Backend URL</label>
             <input type="text" id="ws-url" placeholder="wss://xxxx.ngrok-free.app/ws" />
             <p style="font-size:0.75rem;color:#475569;margin-top:4px;">Leave blank to use localhost (same machine)</p>
           </div>
-          <button type="submit" class="btn-primary login-btn">Login</button>
+          <div id="login-loading" style="display:none;text-align:center;font-size:0.85rem;color:#f5a623;margin-bottom:8px;">Logging in...</div>
+          <button type="submit" id="login-btn" class="btn-primary login-btn">Login</button>
         </form>
       </div>
     </div>
@@ -120,7 +123,10 @@
           <!-- Sensitivity multiplier -->
           <div class="slider-group" style="margin-bottom:12px;">
             <label style="font-size:0.85rem;">Sensitivity: <span id="mul-val">2.0x</span></label>
-            <input type="range" id="mul-slider" min="1.1" max="5" step="0.1" value="2.0">
+            <div class="slider-wrap">
+              <input type="range" id="mul-slider" min="1.1" max="5" step="0.1" value="2.0">
+              <div id="mul-tooltip" class="slider-tooltip">2.0x</div>
+            </div>
             <p style="font-size:0.75rem;color:var(--text-secondary);margin-top:3px;">Higher = less sensitive. Triggers recalibration.</p>
           </div>
 
@@ -153,11 +159,18 @@
 
     <main class="main-content" id="main-content">
       <div class="top-nav">
-        <div id="user-role-display"
-          style="font-weight: 600; font-size: 1.1rem; color: #f5a623; text-transform: uppercase; letter-spacing: 1px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div id="user-role-display"
+            style="font-weight: 600; font-size: 1.1rem; color: #f5a623; text-transform: uppercase; letter-spacing: 1px;">
+          </div>
+          <!-- Admin tabs -->
+          <div id="admin-tabs" style="display:none;gap:6px;">
+            <button id="tab-monitor-btn" class="btn-secondary tab-active" onclick="switchAdminTab('monitor')" style="font-size:0.8rem;padding:6px 14px;">📡 Monitor</button>
+            <button id="tab-personid-btn" class="btn-secondary" onclick="switchAdminTab('personid')" style="font-size:0.8rem;padding:6px 14px;">👤 Person ID</button>
+          </div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
-          <button id="theme-toggle-btn" class="btn-secondary" style="margin-bottom:0;">☀️ Switch to Light Mode</button>
+          <button id="theme-toggle-btn" class="btn-secondary" style="margin-bottom:0;">🌙 Switch to Dark Mode</button>
           <button id="logout-btn" class="btn-secondary" style="margin-bottom:0;border-color:#ff3b3b;color:#ff3b3b;">⏻ Logout</button>
         </div>
       </div>
@@ -188,6 +201,11 @@
           <div id="occupancy-timer" class="stat-value" style="color:#00ff88">Room: Clear</div>
         </div>
         <div class="stat-card">
+          <div class="stat-label">AI Activity</div>
+          <div id="activity-label" class="stat-value" style="color:#3b82f6;font-size:1rem;">Unknown</div>
+          <div id="activity-conf" style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;">—</div>
+        </div>
+        <div class="stat-card">
           <div class="stat-label">Uptime</div>
           <div id="stat-uptime" class="stat-value">0s</div>
         </div>
@@ -206,7 +224,7 @@
       </div>
 
       <!-- Subcarrier sparklines -->
-      <div class="chart-container" style="height:200px;">
+      <div class="chart-container" style="height:220px;">
         <div class="chart-header" style="margin-bottom:10px;">
           <h3>Active Subcarriers (per-channel variance)</h3>
           <span style="font-size:0.8rem;color:var(--text-secondary)">Red = most active</span>
@@ -215,12 +233,92 @@
       </div>
 
       <!-- 24h Motion Heatmap -->
-      <div class="chart-container" style="height:200px;">
+      <div class="chart-container" style="height:220px;">
         <div class="chart-header" style="margin-bottom:10px;">
           <h3>Motion Heatmap — Today (by hour)</h3>
         </div>
         <canvas id="heatmap-chart"></canvas>
       </div>
+
+      <!-- ── PERSON ID TAB ─────────────────────────────────────────────────── -->
+      <div id="tab-personid" style="display:none;flex-direction:column;gap:16px;flex:1;min-height:0;">
+
+        <!-- Connection + Detection Banner -->
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <span style="font-size:0.85rem;font-weight:700;text-transform:uppercase;">Identity WS:</span>
+          <span id="id-conn-badge" style="font-weight:700;color:#eab308;">CONNECTING</span>
+        </div>
+
+        <div id="last-detection-banner" class="detection-banner detection-clear">
+          <span id="last-detection-icon" style="font-size:2rem;">🧘</span>
+          <div>
+            <div id="last-detection-name" style="font-size:1.4rem;font-weight:900;text-transform:uppercase;">Waiting...</div>
+            <div id="last-detection-meta" style="font-size:0.85rem;opacity:0.8;">No crossing detected</div>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <div class="stat-card"><div class="stat-label">Total Crossings</div><div id="id-stat-total" class="stat-value">0</div></div>
+          <div class="stat-card"><div class="stat-label">Identified</div><div id="id-stat-identified" class="stat-value" style="color:#3b82f6;">0</div></div>
+          <div class="stat-card"><div class="stat-label">Unknown</div><div id="id-stat-unknown" class="stat-value" style="color:#ff3b3b;">0</div></div>
+          <div class="stat-card"><div class="stat-label">Enrolled Profiles</div><div id="id-stat-enrolled" class="stat-value" style="color:#f5a623;">0</div></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+          <!-- LEFT: Live event feed + Unknown alerts -->
+          <div style="display:flex;flex-direction:column;gap:12px;">
+
+            <!-- Live event feed -->
+            <div class="chart-container" style="height:auto;min-height:260px;">
+              <div class="chart-header"><h3>Live Detection Feed</h3></div>
+              <div id="id-event-list" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:200px;">
+                <div class="empty-log">No crossings yet</div>
+              </div>
+            </div>
+
+            <!-- Unknown alerts -->
+            <div class="chart-container" style="height:auto;min-height:160px;">
+              <div class="chart-header"><h3>🚨 Unknown Alerts</h3></div>
+              <div id="id-alert-list" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:120px;">
+                <div class="empty-log">No unknown alerts</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- RIGHT: Enrollment + Profiles -->
+          <div style="display:flex;flex-direction:column;gap:12px;">
+
+            <!-- Enroll panel -->
+            <div class="chart-container" style="height:auto;">
+              <div class="chart-header"><h3>Enroll New Person</h3></div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <input type="text" id="enroll-name" placeholder="Enter person name..."
+                  style="padding:10px 12px;border:3px solid var(--border-color);background:var(--list-bg);color:var(--text-primary);font-family:var(--font-family);font-weight:600;font-size:0.9rem;border-radius:var(--radius-sm);box-shadow:var(--brutal-shadow);width:100%;" />
+                <div style="display:flex;gap:8px;">
+                  <button id="enroll-start-btn" class="btn-primary" style="flex:1;">▶ Start</button>
+                  <button id="enroll-stop-btn" class="btn-secondary" style="flex:1;" disabled>⏹ Stop</button>
+                </div>
+                <div id="enroll-status-bar" class="enroll-status-idle">
+                  <span id="enroll-status-text" style="font-size:0.82rem;color:var(--text-secondary);">Ready to enroll</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Profiles list -->
+            <div class="chart-container" style="height:auto;min-height:180px;">
+              <div class="chart-header"><h3>Enrolled Profiles</h3></div>
+              <div id="profiles-list" style="display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:200px;">
+                <div class="empty-log">No profiles enrolled yet</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
     </main>
   </div>
 
@@ -228,7 +326,7 @@
   <div id="user-app" class="user-app-layout" style="display: none;">
 
     <!-- LEFT PANEL: Live Status + Alerts -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 25px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--panel-bg); overflow-y: auto;">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 25px; border: 3px solid var(--border-color); border-radius: 0; background: var(--panel-bg); overflow-y: auto; box-shadow: 5px 5px 0px 0px var(--border-color);">
 
       <!-- Header -->
       <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
@@ -275,19 +373,19 @@
     </div> <!-- END LEFT PANEL -->
 
     <!-- RIGHT PANEL: Telegram Sent Dashboard -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 25px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--panel-bg); overflow-y: auto;">
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 20px; padding: 25px; border: 3px solid var(--border-color); border-radius: 0; background: var(--panel-bg); overflow-y: auto; box-shadow: 5px 5px 0px 0px var(--border-color);">
       <h2 style="font-size: 1.4rem; color: #f5a623; text-transform: uppercase; letter-spacing: 2px;">Telegram Alerts Sent</h2>
 
       <!-- Stats Bar -->
-      <div style="display: flex; justify-content: space-between; align-items: center; background: var(--list-bg); border-radius: 8px; padding: 15px 20px; border: 1px solid var(--border-color); font-weight: 600; font-size: 0.95rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; background: var(--list-bg); border-radius: 0; padding: 15px 20px; border: 3px solid var(--border-color); font-weight: 600; font-size: 0.95rem; box-shadow: 3px 3px 0px 0px var(--border-color);">
         <div>Status: <span style="color: #00ff88;">Online 🌍</span></div>
         <div>Total Sent: <span id="telegram-total" style="color:#f5a623;">0</span></div>
         <div style="color:var(--text-secondary);font-size:0.85rem;">Avg Delivery: 1.8s</div>
       </div>
 
       <!-- Table -->
-      <div style="width: 100%; background: var(--list-bg); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;">
-        <div style="display: grid; grid-template-columns: 2fr 3fr 2fr 1.5fr; gap: 15px; padding: 15px 20px; color: #f5a623; font-weight: 600; border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
+      <div style="width: 100%; background: var(--list-bg); border: 3px solid var(--border-color); border-radius: 0; overflow: hidden; box-shadow: 3px 3px 0px 0px var(--border-color);">
+        <div style="display: grid; grid-template-columns: 2fr 3fr 2fr 1.5fr; gap: 15px; padding: 15px 20px; color: #f5a623; font-weight: 600; border-bottom: 3px solid var(--border-color); font-size: 0.9rem;">
           <div>Property ID</div>
           <div>Message</div>
           <div>Date/Time</div>
@@ -304,166 +402,101 @@
   <style>
     .user-accordion {
       background: var(--panel-bg);
-      border-radius: 12px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      border: 3px solid var(--border-color);
+      box-shadow: var(--brutal-shadow);
       overflow: hidden;
-      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
     }
 
     .user-accordion-summary {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 20px;
+      padding: 14px 16px;
       cursor: pointer;
-      font-size: 1.15rem;
+      font-size: 1rem;
       font-weight: 700;
       color: var(--text-primary);
       text-transform: uppercase;
       list-style: none;
-      /* remove default arrow in some browsers */
     }
 
-    .user-accordion-summary::-webkit-details-marker {
-      display: none;
-    }
-
-    @keyframes siren-pulse {
-      0% {
-        transform: scale(0.8);
-        opacity: 0;
-        filter: brightness(1);
-      }
-
-      15% {
-        transform: scale(1.3);
-        opacity: 1;
-        filter: brightness(1.5);
-      }
-
-      30% {
-        transform: scale(1);
-        opacity: 1;
-        filter: brightness(1);
-      }
-
-      45% {
-        transform: scale(1.3);
-        opacity: 1;
-        filter: brightness(1.5);
-      }
-
-      60% {
-        transform: scale(1);
-        opacity: 1;
-        filter: brightness(1);
-      }
-
-      75% {
-        transform: scale(1.3);
-        opacity: 1;
-        filter: brightness(1.5);
-      }
-
-      100% {
-        transform: scale(1);
-        opacity: 0;
-        filter: brightness(1);
-      }
-    }
-
-    .fly-animate {
-      animation: siren-pulse 2.5s ease-in-out forwards;
-    }
+    .user-accordion-summary::-webkit-details-marker { display: none; }
 
     .accordion-content {
-      padding: 15px 20px;
+      padding: 12px 16px;
       background: var(--list-bg);
-      border-top: 1px solid var(--border-color);
+      border-top: 3px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      max-height: 250px;
+      gap: 8px;
+      max-height: 220px;
       overflow-y: auto;
     }
 
     .empty-log {
       color: var(--text-secondary);
       text-transform: uppercase;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       text-align: center;
-      margin: 10px 0;
+      margin: 8px 0;
     }
 
     .user-alert-card {
-      padding: 20px;
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      font-size: 1rem;
-      font-weight: 500;
-      animation: slideIn 0.3s ease-out;
-      border-left: 6px solid transparent;
-      background: var(--list-bg);
-    }
-
-    .user-alert-card .alert-header {
-      font-size: 1.2rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 5px;
-    }
-
-    .user-alert-motion {
-      border-left-color: #ff3b3b;
-    }
-
-    .user-alert-motion .alert-header {
-      color: #ff3b3b;
-    }
-
-    .user-alert-door {
-      border-left-color: #f59e0b;
-    }
-
-    .user-alert-door .alert-header {
-      color: #f59e0b;
-    }
-
-    .user-alert-entry,
-    .user-alert-exit {
-      border-left-color: #f5a623;
-    }
-
-    .user-alert-entry .alert-header,
-    .user-alert-exit .alert-header {
-      color: #f5a623;
-    }
-
-    .stat-card {
-      background: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 15px 20px;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
       gap: 6px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 0.9rem;
+      font-weight: 500;
+      animation: slideIn 0.3s ease-out;
+      border: 2px solid var(--border-color);
+      border-left: 5px solid transparent;
+      background: var(--list-bg);
+      box-shadow: 2px 2px 0px 0px var(--border-color);
+      border-radius: var(--radius-sm);
     }
+
+    .user-alert-card .alert-header {
+      font-size: 1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .user-alert-motion { border-left-color: #ff3b3b; }
+    .user-alert-motion .alert-header { color: #ff3b3b; }
+    .user-alert-door { border-left-color: #f59e0b; }
+    .user-alert-door .alert-header { color: #f59e0b; }
+    .user-alert-entry, .user-alert-exit { border-left-color: #f5a623; }
+    .user-alert-entry .alert-header, .user-alert-exit .alert-header { color: #f5a623; }
+
+    .stat-card {
+      background: var(--panel-bg);
+      border: 3px solid var(--border-color);
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      box-shadow: var(--brutal-shadow);
+      border-radius: var(--radius-sm);
+    }
+
     .stat-label {
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       color: var(--text-secondary);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .stat-value {
-      font-size: 1.4rem;
+      letter-spacing: 0.8px;
       font-weight: 700;
+    }
+
+    .stat-value {
+      font-size: clamp(1rem, 1.8vw, 1.4rem);
+      font-weight: 800;
       color: var(--text-primary);
-      font-family: monospace;
+      font-family: var(--font-family);
+      word-break: break-word;
     }
   </style>
 
