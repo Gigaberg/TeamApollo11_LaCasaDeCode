@@ -1,6 +1,6 @@
-# Techflix — Wi-Fi CSI Presence & Activity Detection
+# S.A.Y.G.E.X — Secure Anomaly Yielding Guardian Exchange
 
-A real-time, camera-free presence detection system using Wi-Fi CSI (Channel State Information) from ESP32-S3 microcontrollers. When someone moves in a room, it disturbs the Wi-Fi signal — Techflix detects that disturbance, classifies the activity, and alerts you instantly.
+A real-time, camera-free presence detection system using Wi-Fi CSI (Channel State Information) from ESP32-S3 microcontrollers. When someone moves in a room, it disturbs the Wi-Fi signal — S.A.Y.G.E.X detects that disturbance, classifies the activity, and alerts you instantly.
 
 ---
 
